@@ -126,6 +126,8 @@
 			var sec = document.createElement('section');
 			sec.classList.add('slide');
 			sec.setAttribute('data-slideindex',idx);
+			sec.style['left'] = (idx-1)*100 + '%';
+			sec.style['position'] = 'absolute';
 			return sec;
 		}
 		// div that the markdown input is delivered in
@@ -500,145 +502,118 @@ More text
   (add-to-end
    *js*
    "
-	  function onepagescroll(selector, options) {
-		  var pages = [];
-		  var currentPage = 1;
-		  var keyUp = {38:1,33:1};
-		  var keyDown = {40:1,34:1};
+	function onepagescroll(selector, options) {
+		var pages = [];
+		var currentPage = 1;
+		var keyUp = {38:1,33:1};
+		var keyDown = {40:1,34:1};
 
-		  var def = {
-			  pageContainer: 'section',
-			  infinite: true,
-			  keyboard: true,
-			  direction: 'vertical',
-		  };
-		  var setting = extend({},def,options);
+		var def = {
+			pageContainer: 'section',
+			infinite: true,
+			keyboard: true,
+			direction: 'vertical',
+		};
+		var setting = extend({},def,options);
 
-		  /* initialization */
-		  function init(){
-			  window.addEventListener('wheel',onScrollEventHandler);
+		/* initialization */
+		function init(){
+			window.addEventListener('wheel',onScrollEventHandler);
 
-			  //allow keyboard input
-			  if(setting.keyboard){
-				  addEventListener('keydown', function(e){
-					  if(keyUp[e.keyCode])
-						  changePage(1,pages.length,-1);
-					  else if(keyDown[e.keyCode])
-						  changePage(pages.length,1,1);
-				  });
-			  }
+			//allow keyboard input
+			if(setting.keyboard){
+				addEventListener('keydown', function(e){
+					if(keyUp[e.keyCode])
+						changePage(1,pages.length,-1);
+					else if(keyDown[e.keyCode])
+						changePage(pages.length,1,1);
+				});
+			}
 
-			  document.querySelector(selector).classList.add('ops-container');
+			var index=1;
+			[].forEach.call(document.querySelectorAll(selector + ' > ' + setting.pageContainer), function(obj){
+				pages.push(obj);
+			});
+		}
 
-			  var index=1;
-			  [].forEach.call(document.querySelectorAll(selector + ' > ' + setting.pageContainer), function(obj){
+		/* wheel event handler */
+		function onScrollEventHandler(e){
+			if(e.wheelDelta > 0)
+				changePage(1,pages.length,-1);
+			else
+				changePage(pages.length,1,1);
+		}
 
-				  obj.classList.add('ops-page');
+		/* extend function for user customization */
+		function extend(){
+			for(var i=1; i<arguments.length; i++)
+				for(var key in arguments[i])
+					if(arguments[i].hasOwnProperty(key))
+						arguments[0][key] = arguments[i][key];
+			return arguments[0];
+		}
 
-				  if(setting.direction == 'horizontal'){
-					  css(obj,{
-						  left:(index-1)*100 + '%',
-						  position:'absolute'
-					  });
-				  }
+		//function for page transition
+		function changePage(compare,edge,increase){
+			if(currentPage==compare){
+				if(setting.infinite)
+					currentPage = edge;
+				else
+					return;
+			} else {
+				currentPage+=increase;
+			}
 
-				  pages.push(obj);
-				  obj.setAttribute('data-pageindex',index++);
-			  });
-		  }
+			if(setting.direction == 'vertical')
+				document.querySelector(selector).style['transform'] = 'translate3d(0,' + -(currentPage-1)*100 + '%,0)';
+			else if(setting.direction == 'horizontal')
+				document.querySelector(selector).style['transform'] = 'translate3d(' + -(currentPage-1)*100 + '%,0,0)';
+		}
 
-		  /* wheel event handler */
-		  function onScrollEventHandler(e){
-			  if(e.wheelDelta > 0)
-        		  changePage(1,pages.length,-1);
-			  else
-        		  changePage(pages.length,1,1);
-		  }
+		/* swipe */
+		var fpos = 0;
+		var lpos = 0;
+		var _n = 90;
 
-		  /* css setter */
-		  function css(obj,styles){
-			  for (var _style in styles)
-				  if(obj.style[_style] !== undefined)
-					  obj.style[_style] = styles[_style];
-		  }
+		//bind touch
+		document.addEventListener('touchstart', function(e) {
+			e.preventDefault();
+			if (e.type == 'touchstart' || e.type == 'touchmove' || e.type == 'touchend' || e.type == 'touchcancel') {
+				var touch = e.touches[0] || e.changedTouches[0];
+				if(setting.direction == 'vertical')
+					fpos = touch.pageY;
+				else if(setting.direction == 'horizontal')
+					fpos = touch.pageX;
+			}
+		});
 
-		  /* extend function for user customization */
-		  function extend(){
-			  for(var i=1; i<arguments.length; i++)
-				  for(var key in arguments[i])
-					  if(arguments[i].hasOwnProperty(key))
-						  arguments[0][key] = arguments[i][key];
-			  return arguments[0];
-		  }
-
-		  //function for page transition
-		  function changePage(compare,edge,increase){
-			  if(currentPage==compare){
-				  if(setting.infinite)
-					  currentPage = edge;
-				  else
-					  return;
-			  }
-			  else{
-				  currentPage+=increase;
-			  }
-
-			  if(setting.direction == 'vertical'){
-				  css(document.querySelector(selector),{
-					  transform:'translate3d(0,' + -(currentPage-1)*100 + '%,0)'
-				  });
-			  }
-			  else if(setting.direction == 'horizontal'){
-				  css(document.querySelector(selector),{
-					  transform:'translate3d(' + -(currentPage-1)*100 + '%,0,0)'
-				  });
-			  }
-		  }
-
-		  /* swipe */
-		  var fpos = 0;
-		  var lpos = 0;
-		  var _n = 90;
-
-		  //bind touch
-		  document.addEventListener('touchstart', function(e) {
-			  e.preventDefault();
-			  if (e.type == 'touchstart' || e.type == 'touchmove' || e.type == 'touchend' || e.type == 'touchcancel') {
-				  var touch = e.touches[0] || e.changedTouches[0];
-				  if(setting.direction == 'vertical')
-					  fpos = touch.pageY;
-				  else if(setting.direction == 'horizontal')
-					  fpos = touch.pageX;
-			  }
-		  });
-
-		  document.addEventListener('touchend', function(e) {
-			  e.preventDefault();
-			  if (e.type == 'touchstart' || e.type == 'touchmove' || e.type == 'touchend' || e.type == 'touchcancel') {
-				  var touch = e.touches[0] || e.changedTouches[0];
-				  if(setting.direction == 'vertical')
-					  lpos = touch.pageY;
-				  else if(setting.direction == 'horizontal')
-					  lpos = touch.pageX;
-			  }
-			  if(fpos + _n < lpos)
-				  changePage(1,pages.length,-1);
-			  else if(fpos > lpos + _n)
-				  changePage(pages.length,1,1);
-		  });
+		document.addEventListener('touchend', function(e) {
+			e.preventDefault();
+			if (e.type == 'touchstart' || e.type == 'touchmove' || e.type == 'touchend' || e.type == 'touchcancel') {
+				var touch = e.touches[0] || e.changedTouches[0];
+				if(setting.direction == 'vertical')
+					lpos = touch.pageY;
+				else if(setting.direction == 'horizontal')
+					lpos = touch.pageX;
+			}
+			if(fpos + _n < lpos)
+				changePage(1,pages.length,-1);
+			else if(fpos > lpos + _n)
+				changePage(pages.length,1,1);
+		});
 
 
-		  /* check documents ready statement and do init() */
-		  if(document.readyState === 'complete')
-			  init();
-		  else
-			  window.addEventListener('onload', init(), false);
-	  }
-	  onepagescroll(\".pages\",{pagination: false , direction: 'horizontal'});")
+		/* check documents ready statement and do init() */
+		if(document.readyState === 'complete')
+			init();
+		else
+			window.addEventListener('onload', init(), false);
+	}
+	onepagescroll(\".pages\",{pagination: false , direction: 'horizontal'});")
   (add-to-end
    *css*
    (css-lite:css
-	 ((".ops-container")
+	 ((".slides-container")
 	  (:position :relative
 	   :display :block
 	   :padding 0
@@ -646,10 +621,11 @@ More text
 	   :height "100%"
 	   :width "100%"
 	   :transform "translate3d(0,0,0)"))
-	 ((".ops-page")
+	 ((".slide")
 	  (:width "100%"
 	   :height "100%"
-	   :position :relative))
+	   :position :relative
+	   :text-align :center))
 	 )))
 
 
