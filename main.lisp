@@ -136,7 +136,7 @@
 		pagesdiv.classList.add('slides-container');
 		markdowndiv.after(pagesdiv);
 		// move contents to pages
-		var index = 0;
+		var index = 1;
 		pagesdiv.appendChild( newSlide(index++) );
 		while(markdowndiv.hasChildNodes()){
 			var c = markdowndiv.firstElementChild;
