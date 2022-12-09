@@ -514,6 +514,16 @@ More text
 			keyboard: true,
 			direction: 'vertical',
 		};
+
+		/* extend function for user customization */
+		function extend(){
+			for(var i=1; i<arguments.length; i++)
+				for(var key in arguments[i])
+					if(arguments[i].hasOwnProperty(key))
+						arguments[0][key] = arguments[i][key];
+			return arguments[0];
+		}
+
 		var setting = extend({},def,options);
 
 		/* initialization */
@@ -542,15 +552,6 @@ More text
 				changePage(1,pages.length,-1);
 			else
 				changePage(pages.length,1,1);
-		}
-
-		/* extend function for user customization */
-		function extend(){
-			for(var i=1; i<arguments.length; i++)
-				for(var key in arguments[i])
-					if(arguments[i].hasOwnProperty(key))
-						arguments[0][key] = arguments[i][key];
-			return arguments[0];
 		}
 
 		//function for page transition
