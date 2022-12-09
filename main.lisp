@@ -570,39 +570,6 @@ More text
 				document.querySelector(selector).style['transform'] = 'translate3d(' + -(currentPage-1)*100 + '%,0,0)';
 		}
 
-		/* swipe */
-		var fpos = 0;
-		var lpos = 0;
-		var _n = 90;
-
-		//bind touch
-		document.addEventListener('touchstart', function(e) {
-			e.preventDefault();
-			if (e.type == 'touchstart' || e.type == 'touchmove' || e.type == 'touchend' || e.type == 'touchcancel') {
-				var touch = e.touches[0] || e.changedTouches[0];
-				if(setting.direction == 'vertical')
-					fpos = touch.pageY;
-				else if(setting.direction == 'horizontal')
-					fpos = touch.pageX;
-			}
-		});
-
-		document.addEventListener('touchend', function(e) {
-			e.preventDefault();
-			if (e.type == 'touchstart' || e.type == 'touchmove' || e.type == 'touchend' || e.type == 'touchcancel') {
-				var touch = e.touches[0] || e.changedTouches[0];
-				if(setting.direction == 'vertical')
-					lpos = touch.pageY;
-				else if(setting.direction == 'horizontal')
-					lpos = touch.pageX;
-			}
-			if(fpos + _n < lpos)
-				changePage(1,pages.length,-1);
-			else if(fpos > lpos + _n)
-				changePage(pages.length,1,1);
-		});
-
-
 		/* check documents ready statement and do init() */
 		if(document.readyState === 'complete')
 			init();
