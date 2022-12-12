@@ -236,8 +236,8 @@ progressbar()"))
 	function slideselect(selector, options) {
 		var pages = [];
 		var currentPage = 1;
-		var keyUp = {38:1,33:1};
-		var keyDown = {40:1,34:1};
+		var keyPrev = {38:1,33:1,37:1};
+		var keyNext = {40:1,34:1,39:1};
 
 		var def = {
 			pageContainer: 'section',
@@ -264,9 +264,9 @@ progressbar()"))
 			//allow keyboard input
 			if(setting.keyboard){
 				addEventListener('keydown', function(e){
-					if(keyUp[e.keyCode])
+					if(keyPrev[e.keyCode])
 						changePage(1,pages.length,-1);
-					else if(keyDown[e.keyCode])
+					else if(keyNext[e.keyCode])
 						changePage(pages.length,1,1);
 				});
 			}
@@ -432,9 +432,6 @@ Text
 (defmacro apply-config (cfg)
   "Take in config CFG as a list and apply the settings. This mostly means calling the right plugins. The config is normaly what is encoded in the front matter of the markdown document"
   `(read-from-string (format nil "(progn ~A)" ,cfg)))
-
-(defun foo ()
-  "FOO")
 
 (defun main ()
   (setf *html* nil)
