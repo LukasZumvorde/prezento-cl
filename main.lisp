@@ -1,8 +1,8 @@
-(ql:quickload "markdown.cl")
-(ql:quickload "parenscript")
-(ql:quickload "cl-who")
-(ql:quickload "hunchentoot")
-(ql:quickload "css-lite")
+(ql:quickload "markdown.cl" :silent t)
+(ql:quickload "parenscript":silent t )
+(ql:quickload "cl-who" :silent t)
+(ql:quickload "hunchentoot" :silent t)
+(ql:quickload "css-lite" :silent t)
 
 (defpackage :lukaz-present
   (:use
@@ -11,7 +11,7 @@
    :parenscript
    :cl-who
    :hunchentoot)
-  (:export ))
+  (:export :main))
 
 (in-package :lukaz-present)
 
@@ -78,7 +78,7 @@
 					:overflow :hidden
 					:height "100%")))))
 
-(defun plugin-default-header()
+(defun plugin-default-header ()
   "Adds the default header to the slides"
   (add-to-front *html*
 				(with-html-output-to-string (s)
@@ -181,6 +181,10 @@
 				   (:font-size "200%"
 					:font-family "sans-serif")))))
 
+(defun plugin-default-js ()
+  (add-to-front *js* "
+const slideChange = new Event('slideChange');
+"))
 
 (defun start-webserver ()
   (setq cl-who:*attribute-quote-char* #\")
@@ -205,13 +209,6 @@
   "Serve the webpage with the HTML-STRING"
   (define-easy-handler (preview :uri "/") () html-string))
 
-
-(defun plugin-default-js ()
-  (add-to-front *js*
-				"
-const slideChange = new Event('slideChange');
-"))
-
 (defun plugin-progressbar ()
   (add-to-end *html*
 			  (cl-who:with-html-output-to-string (s)
@@ -224,8 +221,7 @@ const slideChange = new Event('slideChange');
 				  :height "1%"
 				  :bottom 0
 				  :background "#0000ff"))))
-  (add-to-end *js*
-			  "
+  (add-to-end *js* "
 function progressbar() {
 	document.querySelector('body').addEventListener('slideChange', function(e){
 		document.querySelector('.progressbar').style['width'] = (e.detail.currentSlide / e.detail.maxSlide)*100 + '%';
@@ -234,11 +230,10 @@ function progressbar() {
 progressbar()"))
 
 
-(defun plugin-onepagescroll-reduced ()
+(defun plugin-slideselect ()
   (add-to-end
-   *js*
-   "
-	function onepagescroll(selector, options) {
+   *js* "
+	function slideselect(selector, options) {
 		var pages = [];
 		var currentPage = 1;
 		var keyUp = {38:1,33:1};
@@ -314,7 +309,7 @@ progressbar()"))
 		else
 			window.addEventListener('onload', init(), false);
 	}
-	onepagescroll(\".pages\",{pagination: false , direction: 'horizontal'});")
+	slideselect(\".pages\",{pagination: false , direction: 'horizontal'});")
   (add-to-end
    *css*
    (css-lite:css
@@ -340,10 +335,7 @@ progressbar()"))
   (setf *html* nil)
   (setf *css* nil)
   (setf *js* nil)
-  (plugin-html-from-markdown-string "---
-plugin: testplugin
----
-
+  (plugin-html-from-markdown-string "
 # Heading 1
 
 Text on slide 1
@@ -405,14 +397,63 @@ Text
   (plugin-default-header)
   (plugin-default-footer)
   (plugin-sort-into-pages)
-  (plugin-onepagescroll-reduced)
+  (plugin-slideselect)
   (plugin-progressbar)
   (serve-with-webserver (generate-html)))
 
+(defun read-markdown-stream (stream)
+  "Reads the markdown from STREAM and returns a list with the front-matter as the first element and the markdown document as the second and last element"
+  (loop :for line = (read-line stream nil)
+		:while line
+		:count t :into line-count
+		:if (and (= line-count 1) (equal "---" line)) :count t :into page-breaks :else
+		  :if (and (> line-count 1) (equal "---" line) (= page-breaks 1)) :count t :into page-breaks :else
+			:if (= page-breaks 1) :collect line :into front-matter :else
+			  :collect line :into end-matter
+		:finally (return (list (format nil "~{~A~^~%~}" front-matter)
+							   (format nil "~{~A~^~%~}" end-matter)))))
 
+(defun read-markdown-file (filename)
+  "Reads the markdown from FILENAME and returns a list with the front-matter as the first element and the markdown document as the second and last element"
+  (with-open-file (stream filename)
+	(read-markdown-stream stream)))
 
+(defun read-markdown-string (string)
+  "Reads the markdown from STRING and returns a list with the front-matter as the first element and the markdown document as the second and last element"
+	(read-markdown-stream (make-string-input-stream string)))
 
+(defun read-markdown-stdin ()
+  "Reads the markdown from standard in and returns a list with the front-matter as the first element and the markdown document as the second and last element"
+  (read-markdown-stream *standard-input*))
 
-(start-webserver)
-(update)
+;; (plugin-1 arg1 arg2 arg3 ...)
+;; (plugin-2 ...)
+;; ...
+(defmacro apply-config (cfg)
+  "Take in config CFG as a list and apply the settings. This mostly means calling the right plugins. The config is normaly what is encoded in the front matter of the markdown document"
+  `(read-from-string (format nil "(progn ~A)" ,cfg)))
+
+(defun foo ()
+  "FOO")
+
+(defun main ()
+  (setf *html* nil)
+  (setf *css* nil)
+  (setf *js* nil)
+  (let* ((input (read-markdown-stdin))
+		 (config (first input))
+		 (markdown (second input)))
+	;; markdown and always on plugins
+	(plugin-html-from-markdown-string markdown)
+	(plugin-default-slide-theme)
+	(plugin-default-js)
+	(plugin-sort-into-pages)
+	(plugin-slideselect)
+	;; custom plugin selection
+	(eval (read-from-string (format nil "(progn ~A)" config)))
+	;; generate html and output
+	(format t "~A" (generate-html))))
+
+;;(start-webserver)
+;;(update)
 
