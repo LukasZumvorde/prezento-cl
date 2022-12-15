@@ -3,6 +3,8 @@
 (ql:quickload "cl-who" :silent t)
 (ql:quickload "hunchentoot" :silent t)
 (ql:quickload "css-lite" :silent t)
+;; (ql:quickload "3bmd" :silent t)
+(ql:quickload :cl-ppcre :silent t)
 
 (defpackage :lukaz-present
   (:use
@@ -10,7 +12,9 @@
    :markdown.cl
    :parenscript
    :cl-who
-   :hunchentoot)
+   :hunchentoot
+   ;; :3bmd
+   )
   (:export :main))
 
 (in-package :lukaz-present)
@@ -83,7 +87,7 @@
   (add-to-front *html*
 				(with-html-output-to-string (s)
 				  (:div :class "header"
-						(:h3 "Header")
+						;;(:h5 "Header")
 						(:p "My supercool header"))))
   (add-to-end *css*
 			  (css-lite:css
@@ -104,7 +108,7 @@
   (add-to-end *html*
 			  (with-html-output-to-string (s)
 				(:div :class "footer"
-					  (:h3 "Footer")
+					  ;;(:h5 "Footer")
 					  (:p "A not so cool footer"))))
   (add-to-end *css*
 			  (css-lite:css
@@ -186,6 +190,16 @@
 const slideChange = new Event('slideChange');
 "))
 
+(defun plugin-default-css ()
+  (add-to-front *css*
+				(css-lite:css (("img")
+							   (:width "50%"))
+							  (("ul")
+							   (:text-align "left"
+								:display "inline-block"))
+							  (("li > ul")
+							   (:display "block")))))
+
 (defun start-webserver ()
   (setq cl-who:*attribute-quote-char* #\")
   (when *acceptor*
@@ -209,7 +223,7 @@ const slideChange = new Event('slideChange');
   "Serve the webpage with the HTML-STRING"
   (define-easy-handler (preview :uri "/") () html-string))
 
-(defun plugin-progressbar ()
+(defun plugin-progressbar (&key (height "1%") (color "#0000ff"))
   (add-to-end *html*
 			  (cl-who:with-html-output-to-string (s)
 				(:div :class "progressbar")))
@@ -218,9 +232,9 @@ const slideChange = new Event('slideChange');
 				((".progressbar")
 				 (:position :fixed
 				  :width "100%"
-				  :height "1%"
+				  :height height
 				  :bottom 0
-				  :background "#0000ff"))))
+				  :background color))))
   (add-to-end *js* "
 function progressbar() {
 	document.querySelector('body').addEventListener('slideChange', function(e){
@@ -329,8 +343,6 @@ progressbar()"))
 	 )))
 
 
-
-
 (defun update ()
   (setf *html* nil)
   (setf *css* nil)
@@ -426,12 +438,12 @@ Text
   "Reads the markdown from standard in and returns a list with the front-matter as the first element and the markdown document as the second and last element"
   (read-markdown-stream *standard-input*))
 
-;; (plugin-1 arg1 arg2 arg3 ...)
-;; (plugin-2 ...)
-;; ...
-(defmacro apply-config (cfg)
-  "Take in config CFG as a list and apply the settings. This mostly means calling the right plugins. The config is normaly what is encoded in the front matter of the markdown document"
-  `(read-from-string (format nil "(progn ~A)" ,cfg)))
+;; ;; (plugin-1 arg1 arg2 arg3 ...)
+;; ;; (plugin-2 ...)
+;; ;; ...
+;; (defmacro apply-config (cfg)
+;;   "Take in config CFG as a list and apply the settings. This mostly means calling the right plugins. The config is normaly what is encoded in the front matter of the markdown document"
+;;   `(read-from-string (format nil "(progn ~A)" ,cfg)))
 
 (defun main ()
   (setf *html* nil)
@@ -444,6 +456,7 @@ Text
 	(plugin-html-from-markdown-string markdown)
 	(plugin-default-slide-theme)
 	(plugin-default-js)
+	(plugin-default-css)
 	(plugin-sort-into-pages)
 	(plugin-slideselect)
 	;; custom plugin selection
