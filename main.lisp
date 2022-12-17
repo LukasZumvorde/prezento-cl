@@ -1,19 +1,28 @@
-(ql:quickload "markdown.cl" :silent t)
-(ql:quickload "parenscript":silent t )
-(ql:quickload "cl-who" :silent t)
-(ql:quickload "hunchentoot" :silent t)
-(ql:quickload "css-lite" :silent t)
-;; (ql:quickload "3bmd" :silent t)
-(ql:quickload :cl-ppcre :silent t)
+;; (ql:quickload "markdown.cl" :silent t)
+;; (ql:quickload "parenscript":silent t )
+;; (ql:quickload "cl-who" :silent t)
+;; (ql:quickload "hunchentoot" :silent t)
+;; (ql:quickload "css-lite" :silent t)
+;; ;; (ql:quickload "3bmd" :silent t)
+;; (ql:quickload :cl-ppcre :silent t)
+;; (ql:quickload :quri :silent t)
+
+(require "markdown.cl")
+(require "parenscript")
+(require "css-lite")
+(require "cl-who")
+(require "hunchentoot")
+(require "quri")
 
 (defpackage :lukaz-present
+  (:shadowing-import-from :quri :url-encode :url-decode)
   (:use
    :common-lisp
    :markdown.cl
    :parenscript
    :cl-who
    :hunchentoot
-   ;; :3bmd
+   :quri
    )
   (:export :main))
 
@@ -87,28 +96,20 @@
   (add-to-front *html*
 				(with-html-output-to-string (s)
 				  (:div :class "header"
-						;;(:h5 "Header")
 						(:p "My supercool header"))))
   (add-to-end *css*
 			  (css-lite:css
 			   ((".header")
-				(;; :position :fixed
-				 ;; :left "0"
-				 ;; :top "0"
-				 ;; :width "100%"
-				 :padding "20px"
+				(:padding "20px"
 				 :text-align "center"
 				 :background "#1abc9c"
-				 :color :white
-				 ;; :font-size "16px"
-				 )))))
+				 :color :white )))))
 
 (defun plugin-default-footer ()
   "Adds the default footer to the slides"
   (add-to-end *html*
 			  (with-html-output-to-string (s)
 				(:div :class "footer"
-					  ;;(:h5 "Footer")
 					  (:p "A not so cool footer"))))
   (add-to-end *css*
 			  (css-lite:css
@@ -119,8 +120,7 @@
 				 :width "100%"
 				 :background :red
 				 :color :white
-				 :text-align "center"
-				 )))))
+				 :text-align "center")))))
 
 (defun plugin-sort-into-pages ()
   (add-to-front
@@ -342,76 +342,22 @@ progressbar()"))
 	   :text-align :center))
 	 )))
 
+(defun get-src-from-img-tag (html-string img-tag-start img-tag-end)
+  "Return the "
+  (multiple-value-bind (s e)
+	  (cl-ppcre:scan " src=\"[^ ]*\"" html-string :start img-tag-start :end img-tag-end)
+	(values (+ s 6) (- e 1))))
 
-(defun update ()
-  (setf *html* nil)
-  (setf *css* nil)
-  (setf *js* nil)
-  (plugin-html-from-markdown-string "
-# Heading 1
-
-Text on slide 1
-
-## Subheading 1.1
-
-- bullet
-- list
-
-# Heading 2
-
-Text on slide 2
-
-# Heading 3
-
-Text on slide 3
-
-Somethimes we have very long paragraphs, whose lines are much much longer than we normaly want to get. Well on slow browsers the show/hide method MIGHT cause the box to flicker (though the computer have to be really slow). So if you want to avoid this, give the div a opacity: 0 - and perhaps even a position: absolute, so it doesnt push the content. So to extend the code from before.
-
-
-# Heading 4
-
-Text on slide 4
-
-![Dogs Image](https://cdn.theatlantic.com/thumbor/GtkxlReLLoEz2f-mJz7591LXHnM=/0x104:2000x1229/1920x1080/media/img/2016/06/01/atlantic_full/original.jpg)
-
-<img src=\"https://cdn.theatlantic.com/thumbor/GtkxlReLLoEz2f-mJz7591LXHnM=/0x104:2000x1229/1920x1080/media/img/2016/06/01/atlantic_full/original.jpg\" style=\"width: 200px\" />
-
-More text
-
-# Heading 5
-
-- Items
-- Are
-  - not
-  - all
-  - on
-- the same level
-
-# Heading 6
-
-Text
-
-## Subheading 6.1
-
-Text
-
-## Subheading 6.2
-
-Text
-
-## Subheading 6.3
-
-Text
-
-")
-  (plugin-default-slide-theme)
-  (plugin-default-js)
-  (plugin-default-header)
-  (plugin-default-footer)
-  (plugin-sort-into-pages)
-  (plugin-slideselect)
-  (plugin-progressbar)
-  (serve-with-webserver (generate-html)))
+(defun plugin-self-contain-images ()
+  "Converts strings to images in the presentation. They are downloaded and then encoded in base64. The base64 encoded image is then diectly placed in the html."
+  (let ((html-string "<p><img src='https://cdn.theatlantic.com/thumbor/GtkxlReLLoEz2f-mJz7591LXHnM=/0x104:2000x1229/1920x1080/media/img/2016/06/01/atlantic_full/original.jpg' alt='Dogs Image'></p>"))
+	;; for every image do ...
+	(cl-ppcre:do-matches (s
+						  e
+						  "<img src=[^ ]* "
+						  html-string
+						  nil)
+	  (format t "~A~%" (subseq html-string (+ s 10) (- e 2))))))
 
 (defun read-markdown-stream (stream)
   "Reads the markdown from STREAM and returns a list with the front-matter as the first element and the markdown document as the second and last element"
@@ -438,13 +384,6 @@ Text
   "Reads the markdown from standard in and returns a list with the front-matter as the first element and the markdown document as the second and last element"
   (read-markdown-stream *standard-input*))
 
-;; ;; (plugin-1 arg1 arg2 arg3 ...)
-;; ;; (plugin-2 ...)
-;; ;; ...
-;; (defmacro apply-config (cfg)
-;;   "Take in config CFG as a list and apply the settings. This mostly means calling the right plugins. The config is normaly what is encoded in the front matter of the markdown document"
-;;   `(read-from-string (format nil "(progn ~A)" ,cfg)))
-
 (defun main ()
   (setf *html* nil)
   (setf *css* nil)
@@ -464,6 +403,4 @@ Text
 	;; generate html and output
 	(format t "~A" (generate-html))))
 
-;;(start-webserver)
-;;(update)
 
