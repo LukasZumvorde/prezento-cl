@@ -90,26 +90,27 @@
 					:overflow :hidden
 					:height "100%")))))
 
-(defun plugin-default-header ()
+
+(defun plugin-default-header (&key (text "Header text") (bgcolor "#1abc9c") (fgcolor "#ffffff"))
   "Adds the default header to the slides"
   (add-to-front *html*
 				(with-html-output-to-string (s)
 				  (:div :class "header"
-						(:p "My supercool header"))))
+						(:p (write-string text s)))))
   (add-to-end *css*
 			  (css-lite:css
 			   ((".header")
 				(:padding "20px"
 				 :text-align "center"
-				 :background "#1abc9c"
-				 :color :white )))))
+				 :background bgcolor
+				 :color fgcolor )))))
 
-(defun plugin-default-footer ()
+(defun plugin-default-footer (&key (text "Footer text") (bgcolor "#1abc9c") (fgcolor "#ffffff"))
   "Adds the default footer to the slides"
   (add-to-end *html*
 			  (with-html-output-to-string (s)
 				(:div :class "footer"
-					  (:p "A not so cool footer"))))
+					  (:p (write-string text s)))))
   (add-to-end *css*
 			  (css-lite:css
 			   ((".footer")
@@ -117,8 +118,8 @@
 				 :left "0"
 				 :bottom "0"
 				 :width "100%"
-				 :background :red
-				 :color :white
+				 :background bgcolor
+				 :color fgcolor
 				 :text-align "center")))))
 
 (defun plugin-sort-into-pages ()
@@ -129,7 +130,7 @@
 			var sec = document.createElement('section');
 			sec.classList.add('slide');
 			sec.setAttribute('data-slideindex',idx);
-			sec.style['left'] = (idx-1)*100 + '%';
+			sec.style['left'] = (idx-1)*100+20 + '%';
 			sec.style['position'] = 'absolute';
 			return sec;
 		}
@@ -223,6 +224,7 @@ const slideChange = new Event('slideChange');
   (define-easy-handler (preview :uri "/") () html-string))
 
 (defun plugin-progressbar (&key (height "1%") (color "#0000ff"))
+  "Add a small line to the bottom of the screen indicating the progess in the presentation."
   (add-to-end *html*
 			  (cl-who:with-html-output-to-string (s)
 				(:div :class "progressbar")))
@@ -335,28 +337,64 @@ progressbar()"))
 	   :width "100%"
 	   :transform "translate3d(0,0,0)"))
 	 ((".slide")
-	  (:width "100%"
+	  (:width "60%"
 	   :height "100%"
 	   :position :relative
 	   :text-align :center))
 	 )))
 
-(defun get-src-from-img-tag (html-string img-tag-start img-tag-end)
-  "Return the "
-  (multiple-value-bind (s e)
-	  (cl-ppcre:scan " src=\"[^ ]*\"" html-string :start img-tag-start :end img-tag-end)
-	(values (+ s 6) (- e 1))))
+;; (defun get-src-from-img-tag (html-string img-tag-start img-tag-end)
+;;   "Return the "
+;;   (multiple-value-bind (s e)
+;; 	  (cl-ppcre:scan " src=\"[^ ]*\"" html-string :start img-tag-start :end img-tag-end)
+;; 	(values (+ s 6) (- e 1))))
 
-(defun plugin-self-contain-images ()
-  "Converts strings to images in the presentation. They are downloaded and then encoded in base64. The base64 encoded image is then diectly placed in the html."
-  (let ((html-string "<p><img src='https://cdn.theatlantic.com/thumbor/GtkxlReLLoEz2f-mJz7591LXHnM=/0x104:2000x1229/1920x1080/media/img/2016/06/01/atlantic_full/original.jpg' alt='Dogs Image'></p>"))
-	;; for every image do ...
-	(cl-ppcre:do-matches (s
-						  e
-						  "<img src=[^ ]* "
-						  html-string
-						  nil)
-	  (format t "~A~%" (subseq html-string (+ s 10) (- e 2))))))
+;; (defun plugin-self-contain-images ()
+;;   "Converts strings to images in the presentation. They are downloaded and then encoded in base64. The base64 encoded image is then diectly placed in the html."
+;;   (let ((html-string "<p><img src='https://cdn.theatlantic.com/thumbor/GtkxlReLLoEz2f-mJz7591LXHnM=/0x104:2000x1229/1920x1080/media/img/2016/06/01/atlantic_full/original.jpg' alt='Dogs Image'></p>"))
+;; 	;; for every image do ...
+;; 	(cl-ppcre:do-matches (s
+;; 						  e
+;; 						  "<img src=[^ ]* "
+;; 						  html-string
+;; 						  nil)
+;; 	  (format t "~A~%" (subseq html-string (+ s 10) (- e 2))))))
+
+(defun plugin-title-page (&key (title "Title")  (subtitle ""))
+  "Add a titlepage to the beginning of the presentation"
+  (add-to-front *js*
+				(format nil "
+function titlepage() {
+  var place = document.querySelector('div.rawinput');
+  var title = document.createElement('h1');
+  title.textContent = '~A';
+  var subtitle = document.createElement('p');
+  subtitle.textContent = '~A';
+  place.insertBefore(subtitle, place.firstChild);
+  place.insertBefore(title, place.firstChild);
+}
+titlepage();
+" title subtitle)))
+
+(defun plugin-table-of-contents (&key (heading "Table of Contents"))
+  "Add a titlepage to the beginning of the presentation"
+  (add-to-front *js*
+				(format nil "
+function tableofcontent() {
+  var place = document.querySelector('div.rawinput');
+  var heading = document.createElement('h1');
+  heading.textContent = '~A';
+  var list = document.createElement('ul');
+  place.insertBefore(list, place.firstChild);
+  [].forEach.call(document.querySelectorAll('div.rawinput > h1'), function(obj){
+    var listelement = document.createElement('li');
+    listelement.textContent = obj.textContent;
+    list.appendChild(listelement);
+  });
+  place.insertBefore(heading, place.firstChild);
+}
+tableofcontent();
+" heading)))
 
 (defun read-markdown-stream (stream)
   "Reads the markdown from STREAM and returns a list with the front-matter as the first element and the markdown document as the second and last element"
