@@ -22,8 +22,7 @@
    :parenscript
    :cl-who
    :hunchentoot
-   :quri
-   )
+   :quri)
   (:export :main))
 
 (in-package :lukaz-present)
