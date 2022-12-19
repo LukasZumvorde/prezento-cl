@@ -191,12 +191,26 @@ const slideChange = new Event('slideChange');
 (defun plugin-default-css ()
   (add-to-front *css*
 				(css-lite:css (("img")
-							   (:width "50%"))
+							   (:width "100%"))
 							  (("ul")
 							   (:text-align "left"
 								:display "inline-block"))
 							  (("li > ul")
-							   (:display "block")))))
+							   (:display "block"))
+							  (("table")
+							   (:margin-left "auto"
+								:margin-right "auto"
+								:text-align "left"))
+							  (("table, th, td")
+							   (:border "1px solid black"
+								:border-collapse "collapse"))
+							  (("tr:nth-child(odd)")
+							   (:background-color "#fafafa"))
+							  (("tr:nth-child(even)")
+							   (:background-color "#dddddd"))
+							  (("th")
+							   (:background-color "#cccccc"))
+							  )))
 
 (defun start-webserver ()
   (setq cl-who:*attribute-quote-char* #\")
