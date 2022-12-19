@@ -126,35 +126,44 @@
   (add-to-front
    *js*
    "function sortIntoPages(){
-		function newSlide(idx){
+		function newSlide(slideid, idx, idy){
 			var sec = document.createElement('section');
 			sec.classList.add('slide');
-			sec.setAttribute('data-slideindex',idx);
+			sec.setAttribute('data-slideindex',slideid);
+            sec.setAttribute('data-top-level-index', idx);
+            sec.setAttribute('data-sub-level-index', idy);
 			sec.style['left'] = (idx-1)*100+20 + '%';
+            sec.style['top'] = (idy-1)*100 + 'vh';
 			sec.style['position'] = 'absolute';
 			return sec;
 		}
 		// div that the markdown input is delivered in
 		var markdowndiv = document.querySelector('.rawinput');
-		// div that we want to put the pages is
-		var pagesdiv = document.createElement('div');
-		pagesdiv.classList.add('pages');
-		pagesdiv.classList.add('slides-container');
-		markdowndiv.after(pagesdiv);
-		// move contents to pages
-		var index = 1;
-		pagesdiv.appendChild( newSlide(index++) );
+		// div that we want to put the slides in
+		var slidesdiv = document.createElement('div');
+		slidesdiv.classList.add('slides-container');
+		markdowndiv.after(slidesdiv);
+		// move contents to slides
+        var slideid = 1;
+		var topLevelIndex = 1;
+        var subLevelIndex = 1;
+		slidesdiv.appendChild( newSlide(slideid++, topLevelIndex++, subLevelIndex) );
 		while(markdowndiv.hasChildNodes()){
 			var c = markdowndiv.firstElementChild;
 			if( c == null )
 				break;
 			if(c.matches('h1')){
-				if(pagesdiv.lastChild.hasChildNodes()){
-					pagesdiv.appendChild( newSlide(index++) );
-					// pagesdiv.appendChild( document.createElement('section') );
+				if(slidesdiv.lastChild.hasChildNodes()){
+                    subLevelIndex = 1;
+					slidesdiv.appendChild( newSlide(slideid++, topLevelIndex++, subLevelIndex) );
 				}
 			}
-			pagesdiv.lastChild.appendChild(c);
+            if(c.matches('h2')){
+                if(slidesdiv.lastChild.hasChildNodes()){
+					slidesdiv.appendChild( newSlide(slideid++, (topLevelIndex-1), 1+subLevelIndex++) );
+				}
+            }
+			slidesdiv.lastChild.appendChild(c);
 		}
 		// remove rawinput container
 		markdowndiv.remove();
@@ -261,74 +270,45 @@ progressbar()"))
 (defun plugin-slideselect ()
   (add-to-end
    *js* "
-	function slideselect(selector, options) {
-		var pages = [];
-		var currentPage = 1;
+	function slideselect(selector) {
+		var slides = [];
+		var currentSlide = 1;
 		var keyPrev = {38:1,33:1,37:1};
 		var keyNext = {40:1,34:1,39:1};
-
-		var def = {
-			pageContainer: 'section',
-			infinite: true,
-			keyboard: true,
-			direction: 'vertical',
-		};
-
-		/* extend function for user customization */
-		function extend(){
-			for(var i=1; i<arguments.length; i++)
-				for(var key in arguments[i])
-					if(arguments[i].hasOwnProperty(key))
-						arguments[0][key] = arguments[i][key];
-			return arguments[0];
-		}
-
-		var setting = extend({},def,options);
 
 		/* initialization */
 		function init(){
 			window.addEventListener('wheel',onScrollEventHandler);
 
 			//allow keyboard input
-			if(setting.keyboard){
+			//if(setting.keyboard){
 				addEventListener('keydown', function(e){
 					if(keyPrev[e.keyCode])
-						changePage(1,pages.length,-1);
+						changeSlide(-1);
 					else if(keyNext[e.keyCode])
-						changePage(pages.length,1,1);
+						changeSlide(1);
 				});
-			}
+			//}
 
-			var index=1;
-			[].forEach.call(document.querySelectorAll(selector + ' > ' + setting.pageContainer), function(obj){
-				pages.push(obj);
+			[].forEach.call(document.querySelectorAll('.slides-container > section'), function(obj){
+				slides.push(obj);
 			});
 		}
 
 		/* wheel event handler */
 		function onScrollEventHandler(e){
 			if(e.wheelDelta > 0)
-				changePage(1,pages.length,-1);
+				changeSlide(-1);
 			else
-				changePage(pages.length,1,1);
+				changeSlide(1);
 		}
 
-		//function for page transition
-		function changePage(compare,edge,increase){
-			if(currentPage==compare){
-				if(setting.infinite)
-					currentPage = edge;
-				else
-					return;
-			} else {
-				currentPage+=increase;
-			}
-
-			if(setting.direction == 'vertical')
-				document.querySelector(selector).style['transform'] = 'translate3d(0,' + -(currentPage-1)*100 + '%,0)';
-			else if(setting.direction == 'horizontal')
-				document.querySelector(selector).style['transform'] = 'translate3d(' + -(currentPage-1)*100 + '%,0,0)';
-			document.querySelector('body').dispatchEvent( new CustomEvent('slideChange', { detail: {currentSlide: currentPage, maxSlide: pages.length} }) );
+		function changeSlide(inc){
+			currentSlide = Math.abs( (currentSlide-1+inc+slides.length)%slides.length) + 1 ;
+			var h = document.querySelector('[data-slideindex=\"' + currentSlide + '\"]').getAttribute('data-top-level-index');
+			var v = document.querySelector('[data-slideindex=\"' + currentSlide + '\"]').getAttribute('data-sub-level-index');
+			document.querySelector(selector).style['transform'] = 'translate3d(' + -(h-1)*100 + '%,' + -(v-1)*100 + 'vh,0)';
+			document.querySelector('body').dispatchEvent( new CustomEvent('slideChange', { detail: {currentSlide: currentSlide, maxSlide: slides.length} }) );
 		}
 
 		/* check documents ready statement and do init() */
@@ -337,7 +317,7 @@ progressbar()"))
 		else
 			window.addEventListener('onload', init(), false);
 	}
-	slideselect(\".pages\",{pagination: false , direction: 'horizontal'});")
+	slideselect('.slides-container');")
   (add-to-end
    *css*
    (css-lite:css
