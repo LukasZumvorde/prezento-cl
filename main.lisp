@@ -280,15 +280,12 @@ progressbar()"))
 		function init(){
 			window.addEventListener('wheel',onScrollEventHandler);
 
-			//allow keyboard input
-			//if(setting.keyboard){
-				addEventListener('keydown', function(e){
-					if(keyPrev[e.keyCode])
-						changeSlide(-1);
-					else if(keyNext[e.keyCode])
-						changeSlide(1);
-				});
-			//}
+			addEventListener('keydown', function(e){
+				if(keyPrev[e.keyCode])
+					changeSlide(-1);
+				else if(keyNext[e.keyCode])
+					changeSlide(1);
+			});
 
 			[].forEach.call(document.querySelectorAll('.slides-container > section'), function(obj){
 				slides.push(obj);
