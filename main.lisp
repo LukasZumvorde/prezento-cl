@@ -247,7 +247,8 @@ const slideChange = new Event('slideChange');
 				  :width "100%"
 				  :height height
 				  :bottom 0
-				  :background color))))
+				  :background color
+				  :transition "width 1s" ))))
   (add-to-end *js* "
 function progressbar() {
 	document.querySelector('body').addEventListener('slideChange', function(e){
@@ -347,7 +348,8 @@ progressbar()"))
 	   :margin 0
 	   :height "100%"
 	   :width "100%"
-	   :transform "translate3d(0,0,0)"))
+	   :transform "translate3d(0,0,0)"
+	   :transition "transform 1s"))
 	 ((".slide")
 	  (:width "60%"
 	   :height "100%"
