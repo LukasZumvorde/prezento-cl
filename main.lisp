@@ -164,8 +164,6 @@
 (defun plugin-default-slide-theme ()
   (add-to-front *css*
 				(css-lite:css
-				  ((".ops-page")
-				   (:text-align :center))
 				  (("h1")
 				   (:font-size "1.75em"
 					:font-family "sans-serif"
