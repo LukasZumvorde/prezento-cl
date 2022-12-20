@@ -209,7 +209,8 @@ const slideChange = new Event('slideChange');
 							  (("table")
 							   (:margin-left "auto"
 								:margin-right "auto"
-								:text-align "left"))
+								:text-align "left"
+								:font-size "1em"))
 							  (("table, th, td")
 							   (:border "1px solid black"
 								:border-collapse "collapse"))
