@@ -400,6 +400,21 @@ function verticallycenterslides() {
 verticallycenterslides();
 "))
 
+(defun plugin-icon (img-src &key top bottom left right width height)
+  (add-to-end *html*
+			  (cl-who:with-html-output-to-string (s)
+					(:div :class "icon"
+						  (:img :src img-src s))))
+  (add-to-end *css* (css-lite:css
+					 ((".icon")
+					  (:position :fixed
+					   :top top
+					   :bottom bottom
+					   :left left
+					   :right right
+					   :width width
+					   :height height)))))
+
 (defun read-markdown-stream (stream)
   "Reads the markdown from STREAM and returns a list with the front-matter as the first element and the markdown document as the second and last element"
   (loop :for line = (read-line stream nil)
