@@ -35,6 +35,8 @@
 
 (defvar *acceptor* nil)
 
+(defvar *iconcounter* 0)
+
 (defmacro add-to-front (l e)
   "Add element E to the front of list L"
   `(setf ,l (cons ,e ,l)))
@@ -271,6 +273,12 @@ progressbar()"))
 (defun plugin-slideselect ()
   (add-to-end
    *js* "
+
+	const nextSlideEvent = new Event('nextSlide');
+	const prevSlideEvent = new Event('prevSlide');
+	const nextSectionEvent = new Event('nextSection');
+	const prevSectionEvent = new Event('prevSection');
+
 	function slideselect(selector) {
 		var slides = [];
 		var currentSlide = 1;
@@ -281,11 +289,28 @@ progressbar()"))
 		function init(){
 			window.addEventListener('wheel',onScrollEventHandler);
 
+			addEventListener('nextSlide', function(e){ changeSlide(1); });
+			addEventListener('prevSlide', function(e){ changeSlide(-1); });
+			addEventListener('nextSection', function(e){ changeSection(1); });
+			addEventListener('prevSection', function(e){ changeSection(-1); });
+
 			addEventListener('keydown', function(e){
-				if(keyPrev[e.keyCode])
+				if(e.keyCode == 33)
+					changeSlide(-1);
+				if(e.keyCode == 37)
+					changeSlide(-1);
+				if(e.keyCode == 38)
+					changeSection(1);
+				if(e.keyCode == 40)
+					changeSection(-1);
+				if(e.keyCode == 34)
+					changeSlide(1);
+				if(e.keyCode == 39)
+					changeSlide(1);
+				/* if(keyPrev[e.keyCode])
 					changeSlide(-1);
 				else if(keyNext[e.keyCode])
-					changeSlide(1);
+					changeSlide(1); */
 			});
 
 			[].forEach.call(document.querySelectorAll('.slides-container > section'), function(obj){
@@ -296,15 +321,29 @@ progressbar()"))
 		/* wheel event handler */
 		function onScrollEventHandler(e){
 			if(e.wheelDelta > 0)
-				changeSlide(-1);
+				dispatchEvent(nextSlideEvent);
 			else
-				changeSlide(1);
+				dispatchEvent(prevSlideEvent);
 		}
 
 		function changeSlide(inc){
 			currentSlide = Math.abs( (currentSlide-1+inc+slides.length)%slides.length) + 1 ;
 			var h = document.querySelector('[data-slideindex=\"' + currentSlide + '\"]').getAttribute('data-top-level-index');
 			var v = document.querySelector('[data-slideindex=\"' + currentSlide + '\"]').getAttribute('data-sub-level-index');
+			document.querySelector(selector).style['transform'] = 'translate3d(' + -(h-1)*100 + '%,' + -(v-1)*100 + 'vh,0)';
+			document.querySelector('body').dispatchEvent( new CustomEvent('slideChange', { detail: {currentSlide: currentSlide, maxSlide: slides.length} }) );
+		}
+
+		function changeSection(inc){
+			var h = document.querySelector('[data-slideindex=\"' + currentSlide + '\"]').getAttribute('data-top-level-index');
+			var newTopLevel = parseInt(h)+inc;
+			var newSlide = document.querySelector('[data-top-level-index=\"' + newTopLevel + '\"]');
+			if(newSlide == null)
+				return;
+			var newSlideIndex = newSlide.getAttribute('data-slideindex');
+			currentSlide = newSlideIndex;
+			var h = document.querySelector('[data-slideindex=\"' + newSlideIndex + '\"]').getAttribute('data-top-level-index');
+			var v = document.querySelector('[data-slideindex=\"' + newSlideIndex + '\"]').getAttribute('data-sub-level-index');
 			document.querySelector(selector).style['transform'] = 'translate3d(' + -(h-1)*100 + '%,' + -(v-1)*100 + 'vh,0)';
 			document.querySelector('body').dispatchEvent( new CustomEvent('slideChange', { detail: {currentSlide: currentSlide, maxSlide: slides.length} }) );
 		}
@@ -414,6 +453,35 @@ verticallycenterslides();
 					   :right right
 					   :width width
 					   :height height)))))
+
+(defun plugin-controls (&key (fill-color "#D35F5E") (stroke-color "#000000") (hover-color "#D15D5D") (stroke-width "0"))
+  (add-to-end *html*
+			  (cl-who:with-html-output-to-string (s)
+				(:div :class "controls"
+					  "
+<svg version=\"1.1\"
+     baseProfile=\"full\"
+     width=\"100\" height=\"100\"
+     xmlns=\"http://www.w3.org/2000/svg\">
+	 <g fill=\""(write-string fill-color s)"\"
+	 	style=\"fill:"(write-string fill-color s)";stroke:"(write-string stroke-color s)";stroke-width:"(write-string stroke-width s)";\">
+	   <polygon points=\"30,20 50,0 70,20\"
+				onclick=\"window.dispatchEvent(nextSectionEvent)\"/>
+	   <polygon points=\"80,30 100,50 80,70\"
+				onclick=\"window.dispatchEvent(nextSlideEvent)\"/>
+	   <polygon points=\"30,80 70,80 50,100\"
+				onclick=\"window.dispatchEvent(prevSectionEvent)\"/>
+	   <polygon points=\"0,50 20,30 20,70\"
+				onclick=\"window.dispatchEvent(prevSlideEvent)\"/>
+	 </g>
+</svg>" s)))
+  (add-to-end *css* (css-lite:css
+					 ((".controls")
+					  (:position :fixed
+					   :bottom 0
+					   :right 0))
+					  ((".controls:hover")
+					   (:fill "#FFFFFF")))))
 
 (defun read-markdown-stream (stream)
   "Reads the markdown from STREAM and returns a list with the front-matter as the first element and the markdown document as the second and last element"
