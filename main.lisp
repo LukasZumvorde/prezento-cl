@@ -1,7 +1,6 @@
 ;; (ql:quickload "markdown.cl" :silent t)
 ;; (ql:quickload "parenscript":silent t )
 ;; (ql:quickload "cl-who" :silent t)
-;; (ql:quickload "hunchentoot" :silent t)
 ;; (ql:quickload "css-lite" :silent t)
 ;; ;; (ql:quickload "3bmd" :silent t)
 ;; (ql:quickload :cl-ppcre :silent t)
@@ -11,7 +10,6 @@
 (require "parenscript")
 (require "css-lite")
 (require "cl-who")
-(require "hunchentoot")
 (require "quri")
 
 (defpackage :lukaz-present
@@ -21,7 +19,6 @@
    :markdown.cl
    :parenscript
    :cl-who
-   :hunchentoot
    :quri)
   (:export :main))
 
@@ -224,13 +221,6 @@ const slideChange = new Event('slideChange');
 							   (:background-color "#cccccc"))
 							  )))
 
-(defun start-webserver ()
-  (setq cl-who:*attribute-quote-char* #\")
-  (when *acceptor*
-	(stop *acceptor*))
-  (setf (who:html-mode) :html5)
-  (setf *acceptor* (start (make-instance 'hunchentoot:easy-acceptor :port 5000))))
-
 (defun save-to-file (filename html-string)
   "Save the HTML-STRING to the file FILENAME"
   (with-open-file (stream filename
@@ -242,10 +232,6 @@ const slideChange = new Event('slideChange');
 (defun output-to-stdout (html-string)
   "Output the HTML-STRING to standard out"
   (format nil html-string))
-
-(defun serve-with-webserver (html-string)
-  "Serve the webpage with the HTML-STRING"
-  (define-easy-handler (preview :uri "/") () html-string))
 
 (defun plugin-progressbar (&key (height "1%") (color "#0000ff"))
   "Add a small line to the bottom of the screen indicating the progess in the presentation."
@@ -454,7 +440,7 @@ verticallycenterslides();
 					   :width width
 					   :height height)))))
 
-(defun plugin-controls (&key (fill-color "#D35F5E") (stroke-color "#000000") (hover-color "#D15D5D") (stroke-width "0"))
+(defun plugin-controls (&key (fill-color "#D35F5E") (stroke-color "#000000") (stroke-width "0"))
   (add-to-end *html*
 			  (cl-who:with-html-output-to-string (s)
 				(:div :class "controls"
@@ -526,5 +512,3 @@ verticallycenterslides();
 	(eval (read-from-string (format nil "(progn ~A)" config)))
 	;; generate html and output
 	(format t "~A" (generate-html))))
-
-
