@@ -98,38 +98,6 @@
 					:overflow :hidden
 					:height "100%")))))
 
-
-(defun plugin-default-header (&key (text "Header text") (bgcolor "#1abc9c") (fgcolor "#ffffff"))
-  "Adds the default header to the slides"
-  (add-to-front *html*
-				(with-html-output-to-string (s)
-				  (:div :class "header"
-						(:p (write-string text s)))))
-  (add-to-end *css*
-			  (css-lite:css
-			   ((".header")
-				(:padding "20px"
-				 :text-align "center"
-				 :background bgcolor
-				 :color fgcolor )))))
-
-(defun plugin-default-footer (&key (text "Footer text") (bgcolor "#1abc9c") (fgcolor "#ffffff"))
-  "Adds the default footer to the slides"
-  (add-to-end *html*
-			  (with-html-output-to-string (s)
-				(:div :class "footer"
-					  (:p (write-string text s)))))
-  (add-to-end *css*
-			  (css-lite:css
-			   ((".footer")
-				(:position :fixed
-				 :left "0"
-				 :bottom "0"
-				 :width "100%"
-				 :background bgcolor
-				 :color fgcolor
-				 :text-align "center")))))
-
 (defun plugin-sort-into-pages ()
   (add-to-front
    *js*
@@ -242,27 +210,6 @@ const slideChange = new Event('slideChange');
   "Output the HTML-STRING to standard out"
   (format nil html-string))
 
-(defun plugin-progressbar (&key (height "1%") (color "#0000ff"))
-  "Add a small line to the bottom of the screen indicating the progess in the presentation."
-  (add-to-end *html*
-			  (cl-who:with-html-output-to-string (s)
-				(:div :class "progressbar")))
-  (add-to-end *css*
-			  (css-lite:css
-				((".progressbar")
-				 (:position :fixed
-				  :width "100%"
-				  :height height
-				  :bottom 0
-				  :background color
-				  :transition "width 1s" ))))
-  (add-to-end *js* "
-function progressbar() {
-	document.querySelector('body').addEventListener('slideChange', function(e){
-		document.querySelector('.progressbar').style['width'] = (e.detail.currentSlide / e.detail.maxSlide)*100 + '%';
-	});
-}
-progressbar()"))
 
 
 (defun plugin-slideselect ()
@@ -369,98 +316,6 @@ progressbar()"))
 	   :text-align :center))
 	 )))
 
-(defun plugin-title-page (&key (title "Title")  (subtitle ""))
-  "Add a titlepage to the beginning of the presentation"
-  (add-to-front *js*
-				(format nil "
-function titlepage() {
-  var place = document.querySelector('div.rawinput');
-  var title = document.createElement('h1');
-  title.textContent = '~A';
-  var subtitle = document.createElement('p');
-  subtitle.textContent = '~A';
-  place.insertBefore(subtitle, place.firstChild);
-  place.insertBefore(title, place.firstChild);
-}
-titlepage();
-" title subtitle)))
-
-(defun plugin-table-of-contents (&key (heading "Table of Contents"))
-  "Add a titlepage to the beginning of the presentation"
-  (add-to-front *js*
-				(format nil "
-function tableofcontent() {
-  var place = document.querySelector('div.rawinput');
-  var heading = document.createElement('h1');
-  heading.textContent = '~A';
-  var list = document.createElement('ul');
-  place.insertBefore(list, place.firstChild);
-  [].forEach.call(document.querySelectorAll('div.rawinput > h1'), function(obj){
-    var listelement = document.createElement('li');
-    listelement.textContent = obj.textContent;
-    list.appendChild(listelement);
-  });
-  place.insertBefore(heading, place.firstChild);
-}
-tableofcontent();
-" heading)))
-
-(defun plugin-vertically-center-slides ()
-  (add-to-end *js*
-			  "
-function verticallycenterslides() {
-  [].forEach.call(document.querySelectorAll('.slide'), function(obj){
-    var offset = Math.floor(Math.max(window.innerHeight - obj.scrollHeight,0) / 2);
-    obj.style['padding'] = '' + 100 * offset / window.innerHeight + 'vh 0';
-  });
-}
-verticallycenterslides();
-"))
-
-(defun plugin-icon (img-src &key top bottom left right width height)
-  (add-to-end *html*
-			  (cl-who:with-html-output-to-string (s)
-					(:div :class "icon"
-						  (:img :src img-src s))))
-  (add-to-end *css* (css-lite:css
-					 ((".icon")
-					  (:position :fixed
-					   :top top
-					   :bottom bottom
-					   :left left
-					   :right right
-					   :width width
-					   :height height)))))
-
-(defun plugin-controls (&key (fill-color "#D35F5E") (stroke-color "#000000") (stroke-width "0"))
-  (add-to-end *html*
-			  (cl-who:with-html-output-to-string (s)
-				(:div :class "controls"
-					  "
-<svg version=\"1.1\"
-     baseProfile=\"full\"
-     width=\"100\" height=\"100\"
-     xmlns=\"http://www.w3.org/2000/svg\">
-	 <g fill=\""(write-string fill-color s)"\"
-	 	style=\"fill:"(write-string fill-color s)";stroke:"(write-string stroke-color s)";stroke-width:"(write-string stroke-width s)";\">
-	   <polygon points=\"30,20 50,0 70,20\"
-				onclick=\"window.dispatchEvent(nextSectionEvent)\"/>
-	   <polygon points=\"80,30 100,50 80,70\"
-				onclick=\"window.dispatchEvent(nextSlideEvent)\"/>
-	   <polygon points=\"30,80 70,80 50,100\"
-				onclick=\"window.dispatchEvent(prevSectionEvent)\"/>
-	   <polygon points=\"0,50 20,30 20,70\"
-				onclick=\"window.dispatchEvent(prevSlideEvent)\"/>
-	 </g>
-</svg>" s)))
-  (add-to-end *css* (css-lite:css
-					 ((".controls")
-					  (:position :fixed
-					   :bottom 0
-					   :right 0))
-					  ((".controls:hover")
-					   (:fill "#FFFFFF")))))
-
 (defun read-markdown-stream (stream)
   "Reads the markdown from STREAM and returns a list with the front-matter as the first element and the markdown document as the second and last element"
   (loop :for line = (read-line stream nil)
@@ -486,17 +341,16 @@ verticallycenterslides();
   "Reads the markdown from standard in and returns a list with the front-matter as the first element and the markdown document as the second and last element"
   (read-markdown-stream *standard-input*))
 
-(defun load-all-plugins ()
-  "Load all lisp files in the plugins directory"
-  (let ((plugins (directory "plugins/*.lisp")))
+
+;; Automatically load all plugins in the plugins directory
+(let ((plugins (directory "/home/lukas/quicklisp/local-projects/lukaz-present/plugins/*.lisp")))
 	(dolist (p plugins)
-	  (load p))))
+	  (load p)))
 
 (defun main ()
   (setf *html* nil)
   (setf *css* nil)
   (setf *js* nil)
-  (load-all-plugins)
   (let* ((input (read-markdown-stdin))
 		 (config (first input))
 		 (markdown (second input)))
@@ -511,94 +365,4 @@ verticallycenterslides();
 	(eval (read-from-string (format nil "(progn ~A)" config)))
 	;; generate html and output
 	(format t "~A" (generate-html))))
-
-
-
-
-
-(defun get-base64-encoded-stream-contents (stream)
-  (loop with array = (make-array 0 :element-type '(unsigned-byte 8)
-								   :adjustable t :fill-pointer 0)
-		for byte = (read-byte stream nil)
-		while byte
-		do (vector-push-extend byte array)
-		finally (return (cl-base64:usb8-array-to-base64-string array))))
-
-(defun get-base64-encoded-uri-contents (uri)
-  (get-base64-encoded-stream-contents (drakma:http-request uri :want-stream t)))
-
-(defun get-base64-encoded-file-contents (path)
-  (with-open-file (stream path :element-type '(unsigned-byte 8))
-	(get-base64-encoded-stream-contents stream)))
-
-(defmacro try-these (default &body body)
-  "Try to execute each command in order. If an error happens try the next. If no error happens exit."
-  (if body
-	  (let ((next (car body))
-			(rest (cdr body)))
-		`(handler-case ,next
-		   (t ()
-			 (try-these ,default
-						 ,@rest))))
-	  default))
-
-(defun get-base64-encoded-image-contents (string)
-  (try-these nil
-	(get-base64-encoded-file-contents string)
-	(get-base64-encoded-uri-contents string)))
-
-(defun find-img-tag (text &optional (start 0))
-  (multiple-value-bind (s e)
-	  (cl-ppcre:scan "<img [^>]*>" text :start start)
-	(cond ((null s) nil)
-		  ((null e) nil)
-		  (t (list s e (subseq text s e))))))
-
-(defun find-src-url-in-img (text start end)
-  (multiple-value-bind (s e)
-	  (cl-ppcre:scan " src=['\"](?!data:image/)[^ ]*['\"]" text :start start :end end)
-	(cond ((null s) nil)
-		  ((null e) nil)
-		  (t (list (+ 6 s) (- e 1) (subseq text (+ 6 s) (- e 1)))))))
-
-(defun file-extension (url)
-  "Return the file extension if any. Return nil otherwise"
-  (multiple-value-bind (s e)
-	  (cl-ppcre:scan "\\.[^./]+$" url)
-	(if (and s e)
-		(cond ((equal "svg" (subseq url (+ 1 s) e)) "svg+xml")
-			  (t (subseq url (+ 1 s) e)))
-		nil)))
-
-(defun replace-src-url (text start end)
-  (let* ((url (subseq text start end))
-		 (base64img (get-base64-encoded-image-contents url))
-		 (extension (file-extension url)))
-	(if (and url base64img extension)
-		(cl-ppcre:regex-replace (subseq text start end) text (format nil "data:image/~A;base64,~A" extension base64img))
-		text)))
-
-(defun inline-images (html-string &optional (start 0))
-  (let ((img-search (find-img-tag html-string start)))
-	(if img-search
-		(let ((src-url-search (find-src-url-in-img html-string (first img-search) (second img-search))))
-		  (if src-url-search
-			  (let ((inline-html-string (replace-src-url html-string (first src-url-search) (second src-url-search))))
-				(if inline-html-string
-					(inline-images inline-html-string (+ 1 (first img-search)))
-					(inline-images html-string (+ 1 (first img-search)))
-					)
-				)
-			  (inline-images html-string (+ 1 (first img-search)))
-			  )
-		  )
-		html-string)
-	)
-  )
-
-(defun plugin-inline-images ()
-  "Replace all images in the html into images that are embedded in the html code"
-  (setq *html* (map 'list #'inline-images *html*)))
-
-
 
