@@ -486,10 +486,17 @@ verticallycenterslides();
   "Reads the markdown from standard in and returns a list with the front-matter as the first element and the markdown document as the second and last element"
   (read-markdown-stream *standard-input*))
 
+(defun load-all-plugins ()
+  "Load all lisp files in the plugins directory"
+  (let ((plugins (directory "plugins/*.lisp")))
+	(dolist (p plugins)
+	  (load p))))
+
 (defun main ()
   (setf *html* nil)
   (setf *css* nil)
   (setf *js* nil)
+  (load-all-plugins)
   (let* ((input (read-markdown-stdin))
 		 (config (first input))
 		 (markdown (second input)))
@@ -592,4 +599,6 @@ verticallycenterslides();
 (defun plugin-inline-images ()
   "Replace all images in the html into images that are embedded in the html code"
   (setq *html* (map 'list #'inline-images *html*)))
+
+
 
