@@ -290,13 +290,32 @@ const slideChange = new Event('slideChange');
 			document.querySelector('body').dispatchEvent( new CustomEvent('slideChange', { detail: {currentSlide: currentSlide, maxSlide: slides.length} }) );
 		}
 
+		function jumpToSlide(slideindex){
+			currentSlide = Math.abs((slideindex-1+slides.length)%slides.length) + 1;
+			var h = document.querySelector('[data-slideindex=\"' + currentSlide + '\"]').getAttribute('data-top-level-index');
+			var v = document.querySelector('[data-slideindex=\"' + currentSlide + '\"]').getAttribute('data-sub-level-index');
+			document.querySelector(selector).style['transform'] = 'translate3d(' + -(h-1)*100 + '%,' + -(v-1)*100 + 'vh,0)';
+			document.querySelector('body').dispatchEvent( new CustomEvent('slideChange', { detail: {currentSlide: currentSlide, maxSlide: slides.length} }) );
+		}
+
+		function jumpByHash(){
+			var slideindex = parseInt(window.location.hash.replace('#',''));
+			jumpToSlide(slideindex);
+		}
+
 		/* check documents ready statement and do init() */
 		if(document.readyState === 'complete')
 			init();
 		else
 			window.addEventListener('onload', init(), false);
+        window.addEventListener('hashchange', jumpByHash, true);
 	}
-	slideselect('.slides-container');")
+	slideselect('.slides-container');
+
+
+
+
+")
   (add-to-end
    *css*
    (css-lite:css
