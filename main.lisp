@@ -106,10 +106,10 @@
 			var sec = document.createElement('section');
 			sec.classList.add('slide');
 			sec.setAttribute('data-slideindex',slideid);
-            sec.setAttribute('data-top-level-index', idx);
-            sec.setAttribute('data-sub-level-index', idy);
-			sec.style['left'] = (idx-1)*100+20 + '%';
-            sec.style['top'] = (idy-1)*100 + 'vh';
+			sec.setAttribute('data-top-level-index', idx);
+			sec.setAttribute('data-sub-level-index', idy);
+			sec.style['left'] = idx*100+20 + '%';
+			sec.style['top'] = idy*100 + 'vh';
 			sec.style['position'] = 'absolute';
 			return sec;
 		}
@@ -120,9 +120,9 @@
 		slidesdiv.classList.add('slides-container');
 		markdowndiv.after(slidesdiv);
 		// move contents to slides
-        var slideid = 1;
-		var topLevelIndex = 1;
-        var subLevelIndex = 1;
+		var slideid = 0;
+		var topLevelIndex = 0;
+		var subLevelIndex = 0;
 		slidesdiv.appendChild( newSlide(slideid++, topLevelIndex++, subLevelIndex) );
 		while(markdowndiv.hasChildNodes()){
 			var c = markdowndiv.firstElementChild;
@@ -130,7 +130,7 @@
 				break;
 			if(c.matches('h1')){
 				if(slidesdiv.lastChild.hasChildNodes()){
-                    subLevelIndex = 1;
+                    subLevelIndex = 0;
 					slidesdiv.appendChild( newSlide(slideid++, topLevelIndex++, subLevelIndex) );
 				}
 			}
@@ -223,7 +223,7 @@ const slideChange = new Event('slideChange');
 
 	function slideselect(selector) {
 		var slides = [];
-		var currentSlide = 1;
+		var currentSlide = 0;
 		var keyPrev = {38:1,33:1,37:1};
 		var keyNext = {40:1,34:1,39:1};
 
@@ -268,12 +268,16 @@ const slideChange = new Event('slideChange');
 				dispatchEvent(prevSlideEvent);
 		}
 
-		function changeSlide(inc){
-			currentSlide = Math.abs( (currentSlide-1+inc+slides.length)%slides.length) + 1 ;
+		function jumpToSlide(slideindex){
+			currentSlide = Math.abs((slideindex+slides.length)%slides.length);
 			var h = document.querySelector('[data-slideindex=\"' + currentSlide + '\"]').getAttribute('data-top-level-index');
 			var v = document.querySelector('[data-slideindex=\"' + currentSlide + '\"]').getAttribute('data-sub-level-index');
-			document.querySelector(selector).style['transform'] = 'translate3d(' + -(h-1)*100 + '%,' + -(v-1)*100 + 'vh,0)';
+			document.querySelector(selector).style['transform'] = 'translate3d(' + -h*100 + '%,' + -v*100 + 'vh,0)';
 			document.querySelector('body').dispatchEvent( new CustomEvent('slideChange', { detail: {currentSlide: currentSlide, maxSlide: slides.length} }) );
+		}
+
+		function changeSlide(inc){
+			jumpToSlide(currentSlide+inc);
 		}
 
 		function changeSection(inc){
@@ -283,19 +287,7 @@ const slideChange = new Event('slideChange');
 			if(newSlide == null)
 				return;
 			var newSlideIndex = newSlide.getAttribute('data-slideindex');
-			currentSlide = newSlideIndex;
-			var h = document.querySelector('[data-slideindex=\"' + newSlideIndex + '\"]').getAttribute('data-top-level-index');
-			var v = document.querySelector('[data-slideindex=\"' + newSlideIndex + '\"]').getAttribute('data-sub-level-index');
-			document.querySelector(selector).style['transform'] = 'translate3d(' + -(h-1)*100 + '%,' + -(v-1)*100 + 'vh,0)';
-			document.querySelector('body').dispatchEvent( new CustomEvent('slideChange', { detail: {currentSlide: currentSlide, maxSlide: slides.length} }) );
-		}
-
-		function jumpToSlide(slideindex){
-			currentSlide = Math.abs((slideindex-1+slides.length)%slides.length) + 1;
-			var h = document.querySelector('[data-slideindex=\"' + currentSlide + '\"]').getAttribute('data-top-level-index');
-			var v = document.querySelector('[data-slideindex=\"' + currentSlide + '\"]').getAttribute('data-sub-level-index');
-			document.querySelector(selector).style['transform'] = 'translate3d(' + -(h-1)*100 + '%,' + -(v-1)*100 + 'vh,0)';
-			document.querySelector('body').dispatchEvent( new CustomEvent('slideChange', { detail: {currentSlide: currentSlide, maxSlide: slides.length} }) );
+			jumpToSlide(newSlideIndex);
 		}
 
 		function jumpByHash(){
@@ -311,10 +303,6 @@ const slideChange = new Event('slideChange');
         window.addEventListener('hashchange', jumpByHash, true);
 	}
 	slideselect('.slides-container');
-
-
-
-
 ")
   (add-to-end
    *css*
