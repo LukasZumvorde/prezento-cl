@@ -15,7 +15,7 @@
   (add-to-end *js* "
 function progressbar() {
 	document.querySelector('body').addEventListener('slideChange', function(e){
-		document.querySelector('.progressbar').style['width'] = (e.detail.currentSlide / e.detail.maxSlide)*100 + '%';
+		document.querySelector('.progressbar').style['width'] = (e.detail.currentSlide / (e.detail.maxSlide-1))*100 + '%';
 	});
 }
 progressbar()"))
