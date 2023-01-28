@@ -47,6 +47,26 @@
   "Add element E to the end of list L"
   `(setf ,l (append ,l (list ,e))))
 
+(defmacro html-append (e)
+  "Add element E to the end of the hmtl body"
+  `(setf *html* (append *html* (list ,e))))
+(defmacro html-push (e)
+  "Add element E to the front of the hmtl body"
+  `(setf *html* (cons ,e *html*)))
+(defmacro css-append (e)
+  "Add element E to the end of the css style block"
+  `(setf *css* (append *css* (list ,e))))
+(defmacro css-push (e)
+  "Add element E to the front of the css style block"
+  `(setf *css* (cons ,e *css*)))
+(defmacro js-append (e)
+  "Add element E to the end of the js script block"
+  `(setf *js* (append *js* (list ,e))))
+(defmacro js-push (e)
+  "Add element E to the front of the js script block"
+  `(setf *js* (cons ,e *js*)))
+
+
 (defun generate-css ()
   "Creates the CSS code from the *css* variable."
   (format nil "~{~A~^~%~}" *css*))
