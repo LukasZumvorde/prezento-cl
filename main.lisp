@@ -39,10 +39,6 @@
 
 (defvar *js* nil)
 
-(defvar *acceptor* nil)
-
-(defvar *iconcounter* 0)
-
 (defmacro add-to-front (l e)
   "Add element E to the front of list L"
   `(setf ,l (cons ,e ,l)))
