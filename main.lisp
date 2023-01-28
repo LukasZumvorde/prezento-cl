@@ -192,6 +192,17 @@ const slideChange = new Event('slideChange');
 							   (:background-color "#dddddd"))
 							  (("th")
 							   (:background-color "#cccccc"))
+							  (("a")
+							   (:color "#ee0000"
+								:text-decoration "none"))
+							  (("a:link")
+							   (:color "#ee0000"))
+							  (("a:visited")
+							   (:color "#ee0000"))
+							  (("a:hover")
+							   (:color "#cc0000"))
+							  (("a:active")
+							   (:color "#cc0000"))
 							  )))
 
 (defun save-to-file (filename html-string)
