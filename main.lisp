@@ -310,10 +310,10 @@ const slideChange = new Event('slideChange');
 		function changeSection(inc){
 			var h = document.querySelector('[data-slideindex=\"' + currentSlide + '\"]').getAttribute('data-top-level-index');
 			var newTopLevel = parseInt(h)+inc;
-			var newSlide = document.querySelector('[data-top-level-index=\"' + newTopLevel + '\"]');
+			var newSlide = document.querySelector('[data-top-level-index=\"' + newTopLevel + '\"][data-sub-level-index=\"0\"]');
 			if(newSlide == null)
 				return;
-			var newSlideIndex = newSlide.getAttribute('data-slideindex');
+			var newSlideIndex = parseInt(newSlide.getAttribute('data-slideindex'));
 			jumpToSlide(newSlideIndex);
 		}
 
