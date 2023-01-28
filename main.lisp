@@ -290,9 +290,9 @@ const slideChange = new Event('slideChange');
 		/* wheel event handler */
 		function onScrollEventHandler(e){
 			if(e.wheelDelta > 0)
-				dispatchEvent(nextSlideEvent);
-			else
 				dispatchEvent(prevSlideEvent);
+			else
+				dispatchEvent(nextSlideEvent);
 		}
 
 		function jumpToSlide(slideindex){
