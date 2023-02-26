@@ -9,7 +9,7 @@
 ;; (ql:quickload :cl-base64)
 ;; (ql:quickload :cl-ppcre)
 ;; (ql:quickload :cl-argparse)
-(ql:quickload "unix-opts")
+;; (ql:quickload "unix-opts")
 
 (require "markdown.cl")
 (require "parenscript")
@@ -373,10 +373,12 @@
 (defun unknown-option (condition)
   (format t "warning: ~s option is unknown!~%" (opts:option condition))
   (invoke-restart 'opts:skip-option))
+
 (defmacro when-option ((options opt) &body body)
   `(let ((it (getf ,options ,opt)))
      (when it
        ,@body)))
+
 (defun parse-command-line-arguments ()
   ;; declaring the parser
   (opts:define-opts
@@ -420,12 +422,6 @@
 	(when-option (options :output)
 				 (setf *output-file* it))
 	))
-
-;; (defun read-input ()
-;;   (cond ((equal 2 (sys:command-line-argument-count))
-;; 		 (read-markdown-file (second (sys:command-line-arguments))))
-;; 		(t
-  ;; 		 (read-markdown-stdin))))
 
 (defun read-input ()
   (cond ((equal "-" *input-file*)
