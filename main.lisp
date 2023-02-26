@@ -9,7 +9,6 @@
 ;; (ql:quickload :cl-base64)
 ;; (ql:quickload :cl-ppcre)
 
-
 (require "markdown.cl")
 (require "parenscript")
 (require "css-lite")
@@ -33,51 +32,33 @@
 
 (in-package :lukaz-present)
 
-(defvar *css* nil)
+(defvar *plugins* nil)
 
-(defvar *html* nil)
+(defstruct plugin
+  (priority 0.0 :type real)
+  (id " " :type string)
+  (html " " :type string)
+  (css " " :type string)
+  (js " " :type string))
 
-(defvar *js* nil)
+(defun compare-plugin-priority (a b)
+  (>= (plugin-priority a) (plugin-priority b)))
 
-(defmacro add-to-front (l e)
-  "Add element E to the front of list L"
-  `(setf ,l (cons ,e ,l)))
-
-(defmacro add-to-end (l e)
-  "Add element E to the end of list L"
-  `(setf ,l (append ,l (list ,e))))
-
-(defmacro html-append (e)
-  "Add element E to the end of the hmtl body"
-  `(setf *html* (append *html* (list ,e))))
-(defmacro html-push (e)
-  "Add element E to the front of the hmtl body"
-  `(setf *html* (cons ,e *html*)))
-(defmacro css-append (e)
-  "Add element E to the end of the css style block"
-  `(setf *css* (append *css* (list ,e))))
-(defmacro css-push (e)
-  "Add element E to the front of the css style block"
-  `(setf *css* (cons ,e *css*)))
-(defmacro js-append (e)
-  "Add element E to the end of the js script block"
-  `(setf *js* (append *js* (list ,e))))
-(defmacro js-push (e)
-  "Add element E to the front of the js script block"
-  `(setf *js* (cons ,e *js*)))
-
+(defun add-plugin (p)
+  (setf *plugins* (push p *plugins*))
+  nil)
 
 (defun generate-css ()
-  "Creates the CSS code from the *css* variable."
-  (format nil "~{~A~^~%~}" *css*))
+  "Creates the CSS code from the *plugins"
+  (format nil "~{~A~^~%~}" (map 'list #'plugin-css *plugins*)))
 
 (defun generate-javascript ()
-  "Creates the javascript code from the *js* variable."
-  (format nil "~{~A~^~%~}" *js*))
+  "Creates the javascript code from the *plugins"
+  (format nil "~{~A~^~%~}" (map 'list #'plugin-js *plugins*)))
 
 (defun generate-html-body ()
-  "Creates the html from the *html* variable."
-  (format nil "~{~A~^~%~}" *html*))
+  "Creates the html code from the *plugins"
+  (format nil "~{~A~^~%~}" (map 'list #'plugin-html *plugins*)))
 
 (defun generate-html ()
   "Generates the entire html string and returns it. All plugins have to be applied before applying this function"
@@ -90,33 +71,36 @@
 
 (defun plugin-html-from-markdown-file (filename)
   "Adds the html generated from the markdown file to the slides"
-  (add-to-front *html*
-				(with-html-output-to-string (s)
-				  (:div :class "rawinput" (write-string (markdown:parse-file filename) s))))
-  (add-to-front *css*
-				(css-lite:css
-				  (("body")
-				   (:margin 0
-					:padding 0
-					:overflow :hidden
-					:height "100%")))))
+  (add-plugin
+   (make-plugin
+	:priority 100.0
+	:html (with-html-output-to-string (s)
+			(:div :class "rawinput" (write-string (markdown:parse-file filename) s)))
+	:css (css-lite:css
+		  (("body")
+		   (:margin 0
+			:padding 0
+			:overflow :hidden
+			:height "100%"))))))
 
 (defun plugin-html-from-markdown-string (markdown-string)
-  "Adds the html generated from the markdown string to the slides"
-  (add-to-front *html*
-				(with-html-output-to-string (s)
-				  (:div :class "rawinput" (write-string (markdown:parse markdown-string) s))))
-  (add-to-front *css*
-				(css-lite:css
-				  (("body")
-				   (:margin 0
-					:padding 0
-					:overflow :hidden
-					:height "100%")))))
+  (add-plugin
+   (make-plugin
+	:priority 100.0
+	:html (with-html-output-to-string (s)
+			(:div :class "rawinput" (write-string (markdown:parse markdown-string) s)))
+	:css (css-lite:css
+		  (("body")
+		   (:margin 0
+			:padding 0
+			:overflow :hidden
+			:height "100%"))))))
 
 (defun plugin-sort-into-pages ()
-  (add-to-front
-   *js*
+  (add-plugin
+   (make-plugin
+	:priority 75.0
+	:js
    "function sortIntoPages(){
 		function newSlide(slideid, idx, idy){
 			var sec = document.createElement('section');
@@ -160,70 +144,75 @@
 		// remove rawinput container
 		markdowndiv.remove();
 	}
-	sortIntoPages();"))
+	sortIntoPages();")))
 
 (defun plugin-default-slide-theme ()
-  (add-to-front *css*
-				(css-lite:css
-				  (("h1")
-				   (:font-size "1.75em"
-					:font-family "sans-serif"
-					:color "#ee0000"
-					:text-transform :uppercase
-					:hyphens :auto
-					:word-wrap :break-word))
-				  (("h2")
-				   (:font-size "1.5em"
-					:font-family "sans-serif"
-					:color "#ee0000"))
-				  (("h3")
-				   (:font-size "1.25em"
-					:font-family "sans-serif"
-					:color "#ee0000"))
-				  (("body")
-				   (:font-size "200%"
-					:font-family "sans-serif")))))
+  (add-plugin
+   (make-plugin
+	:priority 95.0
+	:css (css-lite:css
+		  (("h1")
+		   (:font-size "1.75em"
+			:font-family "sans-serif"
+			:color "#ee0000"
+			:text-transform :uppercase
+			:hyphens :auto
+			:word-wrap :break-word))
+		  (("h2")
+		   (:font-size "1.5em"
+			:font-family "sans-serif"
+			:color "#ee0000"))
+		  (("h3")
+		   (:font-size "1.25em"
+			:font-family "sans-serif"
+			:color "#ee0000"))
+		  (("body")
+		   (:font-size "200%"
+			:font-family "sans-serif"))))))
 
 (defun plugin-default-js ()
-  (add-to-front *js* "
-const slideChange = new Event('slideChange');
-"))
+  (add-plugin
+   (make-plugin
+	:priority 90.0
+	:js "const slideChange = new Event('slideChange');")))
 
 (defun plugin-default-css ()
-  (add-to-front *css*
-				(css-lite:css (("img")
-							   (:width "100%"))
-							  (("ul")
-							   (:text-align "left"
-								:display "inline-block"))
-							  (("li > ul")
-							   (:display "block"))
-							  (("table")
-							   (:margin-left "auto"
-								:margin-right "auto"
-								:text-align "left"
-								:font-size "1em"))
-							  (("table, th, td")
-							   (:border "1px solid black"
-								:border-collapse "collapse"))
-							  (("tr:nth-child(odd)")
-							   (:background-color "#fafafa"))
-							  (("tr:nth-child(even)")
-							   (:background-color "#dddddd"))
-							  (("th")
-							   (:background-color "#cccccc"))
-							  (("a")
-							   (:color "#ee0000"
-								:text-decoration "none"))
-							  (("a:link")
-							   (:color "#ee0000"))
-							  (("a:visited")
-							   (:color "#ee0000"))
-							  (("a:hover")
-							   (:color "#cc0000"))
-							  (("a:active")
-							   (:color "#cc0000"))
-							  )))
+  (add-plugin
+   (make-plugin
+	:priority 85.0
+	:css (css-lite:css (("img")
+						(:width "100%"))
+					   (("ul")
+						(:text-align "left"
+						 :display "inline-block"))
+					   (("li > ul")
+						(:display "block"))
+					   (("table")
+						(:margin-left "auto"
+						 :margin-right "auto"
+						 :text-align "left"
+						 :font-size "1em"))
+					   (("table, th, td")
+						(:border "1px solid black"
+						 :border-collapse "collapse"))
+					   (("tr:nth-child(odd)")
+						(:background-color "#fafafa"))
+					   (("tr:nth-child(even)")
+						(:background-color "#dddddd"))
+					   (("th")
+						(:background-color "#cccccc"))
+					   (("a")
+						(:color "#ee0000"
+						 :text-decoration "none"))
+					   (("a:link")
+						(:color "#ee0000"))
+					   (("a:visited")
+						(:color "#ee0000"))
+					   (("a:hover")
+						(:color "#cc0000"))
+					   (("a:active")
+						(:color "#cc0000"))
+					   ))))
 
 (defun save-to-file (filename html-string)
   "Save the HTML-STRING to the file FILENAME"
@@ -237,12 +226,11 @@ const slideChange = new Event('slideChange');
   "Output the HTML-STRING to standard out"
   (format nil html-string))
 
-
-
 (defun plugin-slideselect ()
-  (add-to-end
-   *js* "
-
+  (add-plugin
+   (make-plugin
+	:priority 70.0
+	:js "
 	const nextSlideEvent = new Event('nextSlide');
 	const prevSlideEvent = new Event('prevSlide');
 	const nextSectionEvent = new Event('nextSection');
@@ -330,25 +318,23 @@ const slideChange = new Event('slideChange');
         window.addEventListener('hashchange', jumpByHash, true);
 	}
 	slideselect('.slides-container');
-")
-  (add-to-end
-   *css*
-   (css-lite:css
-	 ((".slides-container")
-	  (:position :relative
-	   :display :block
-	   :padding 0
-	   :margin 0
-	   :height "100%"
-	   :width "100%"
-	   :transform "translate3d(0,0,0)"
-	   :transition "transform 1s"))
-	 ((".slide")
-	  (:width "60%"
-	   :height "100%"
-	   :position :relative
-	   :text-align :center))
-	 )))
+"
+	:css (css-lite:css
+		  ((".slides-container")
+		   (:position :relative
+			:display :block
+			:padding 0
+			:margin 0
+			:height "100%"
+			:width "100%"
+			:transform "translate3d(0,0,0)"
+			:transition "transform 1s"))
+		  ((".slide")
+		   (:width "60%"
+			:height "100%"
+			:position :relative
+			:text-align :center))
+		  ))))
 
 (defun read-markdown-stream (stream)
   "Reads the markdown from STREAM and returns a list with the front-matter as the first element and the markdown document as the second and last element"
@@ -382,9 +368,7 @@ const slideChange = new Event('slideChange');
 	  (load p)))
 
 (defun main ()
-  (setf *html* nil)
-  (setf *css* nil)
-  (setf *js* nil)
+  (setf *plugins* nil)
   (let* ((input (read-markdown-stdin))
 		 (config (first input))
 		 (markdown (second input)))
@@ -398,5 +382,9 @@ const slideChange = new Event('slideChange');
 	;; custom plugin selection
 	(eval (read-from-string (format nil "(progn ~A)" config)))
 	;; generate html and output
-	(format t "~A" (generate-html))))
+	;; (format t "MAIN ~A~%"         (map 'list #'plugin-priority (sort (copy-list *plugins*) #'> :key #'plugin-priority)))
+	;; (format t "MAIN ~A~%"         (map 'list #'plugin-priority *plugins*))
+	(setf *plugins* (sort *plugins* #'> :key #'plugin-priority))
+	(format t "~A" (generate-html))
+	))
 

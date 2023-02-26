@@ -1,7 +1,9 @@
 (defun plugin-table-of-contents (&key (heading "Table of Contents"))
   "Add a titlepage to the beginning of the presentation"
-  (add-to-front *js*
-				(format nil "
+  (add-plugin
+   (make-plugin
+	:priority 77.0
+	:js (format nil "
 function tableofcontent() {
   var place = document.querySelector('div.rawinput');
   var heading = document.createElement('h1');
@@ -39,4 +41,4 @@ function tableofcontent() {
   place.insertBefore(heading, place.firstChild);
 }
 tableofcontent();
-" heading)))
+" heading))))

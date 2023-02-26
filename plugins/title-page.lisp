@@ -1,7 +1,9 @@
 (defun plugin-title-page (&key (title "Title")  (subtitle ""))
   "Add a titlepage to the beginning of the presentation"
-  (add-to-front *js*
-				(format nil "
+  (add-plugin
+   (make-plugin
+	:priority 76.0
+	:js (format nil "
 function titlepage() {
   var place = document.querySelector('div.rawinput');
   var title = document.createElement('h1');
@@ -12,4 +14,5 @@ function titlepage() {
   place.insertBefore(title, place.firstChild);
 }
 titlepage();
-" title subtitle)))
+var hasTitlePage=true;
+" title subtitle))))

@@ -81,5 +81,9 @@
 
 (defun plugin-inline-images ()
   "Replace all images in the html into images that are embedded in the html code"
-  (setq *html* (map 'list #'inline-images *html*)))
+  (add-plugin
+   (make-plugin
+	:priority 50.0
+	;; :html (map 'list #'inline-images *html*)))
+  )))
 

@@ -1,6 +1,8 @@
 (defun plugin-vertically-center-slides ()
-  (add-to-end *js*
-			  "
+  (add-plugin
+   (make-plugin
+	:priority 50.0
+	:js "
 function verticallycenterslides() {
   [].forEach.call(document.querySelectorAll('.slide'), function(obj){
     var offset = Math.floor(Math.max(window.innerHeight - obj.scrollHeight,0) / 2);
@@ -8,4 +10,4 @@ function verticallycenterslides() {
   });
 }
 verticallycenterslides();
-"))
+")))
