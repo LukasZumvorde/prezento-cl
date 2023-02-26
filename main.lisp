@@ -8,6 +8,8 @@
 ;; (ql:quickload :drakma)
 ;; (ql:quickload :cl-base64)
 ;; (ql:quickload :cl-ppcre)
+;; (ql:quickload :cl-argparse)
+(ql:quickload "unix-opts")
 
 (require "markdown.cl")
 (require "parenscript")
@@ -17,9 +19,12 @@
 (require :drakma)
 (require :cl-base64)
 (require :cl-ppcre)
+(require :cl-argparse)
+(require :unix-opts)
 
-(defpackage :lukaz-present
+(defpackage :prezento-cl
   (:shadowing-import-from :quri :url-encode :url-decode)
+  (:shadowing-import-from :unix-opts :describe)
   (:use
    :common-lisp
    :markdown.cl
@@ -27,12 +32,16 @@
    :cl-who
    :quri
    :drakma
-   :cl-base64)
+   :cl-base64
+   :unix-opts)
   (:export :main))
 
-(in-package :lukaz-present)
+(in-package :prezento-cl)
 
 (defvar *plugins* nil)
+
+(defvar *input-file* nil)
+(defvar *output-file* nil)
 
 (defstruct plugin
   (priority 0.0 :type real)
@@ -361,15 +370,80 @@
   "Reads the markdown from standard in and returns a list with the front-matter as the first element and the markdown document as the second and last element"
   (read-markdown-stream *standard-input*))
 
+(defun unknown-option (condition)
+  (format t "warning: ~s option is unknown!~%" (opts:option condition))
+  (invoke-restart 'opts:skip-option))
+(defmacro when-option ((options opt) &body body)
+  `(let ((it (getf ,options ,opt)))
+     (when it
+       ,@body)))
+(defun parse-command-line-arguments ()
+  ;; declaring the parser
+  (opts:define-opts
+    (:name :help
+           :description "print this help text"
+           :short #\h
+           :long "help")
+    (:name :input
+           :description "Input FILE. Set to - or leave out completely for stdin"
+           :short #\i
+           :long "input"
+           :arg-parser #'identity) ;; <- takes an argument
+    (:name :output
+           :description "Output FILE. Set to - or leave out completely for stdout"
+           :short #\o
+           :long "output"
+           :arg-parser #'identity))
+  ;; parsing
+  (multiple-value-bind (options free-args)
+      (handler-case
+		  (handler-bind ((opts:unknown-option #'unknown-option))
+			(opts:get-opts))
+		(opts:missing-arg (condition)
+		  (format t "fatal: option ~s needs an argument!~%"
+				  (opts:option condition)))
+		(opts:arg-parser-failed (condition)
+		  (format t "fatal: cannot parse ~s as argument of ~s~%"
+				  (opts:raw-arg condition)
+				  (opts:option condition)))
+		(opts:missing-required-option (con)
+		  (format t "fatal: ~a~%" con)
+		  (opts:exit 1)))
+	(when-option (options :help)
+				 (opts:describe
+				  :prefix "A program to generate presentations in HTML format from markdown files. Individual configuration can happen in a front matter containing common lisp code"
+				  :suffix ""
+				  :usage-of "prezento-cl")
+				 (opts:exit 0))
+	(when-option (options :input)
+				 (setf *input-file* it))
+	(when-option (options :output)
+				 (setf *output-file* it))
+	))
+
+;; (defun read-input ()
+;;   (cond ((equal 2 (sys:command-line-argument-count))
+;; 		 (read-markdown-file (second (sys:command-line-arguments))))
+;; 		(t
+  ;; 		 (read-markdown-stdin))))
+
+(defun read-input ()
+  (cond ((equal "-" *input-file*)
+		 (read-markdown-stdin))
+		(*input-file*
+		 (read-markdown-file *input-file*))
+		(t
+		 (read-markdown-stdin))))
 
 ;; Automatically load all plugins in the plugins directory
-(let ((plugins (directory "/home/lukas/quicklisp/local-projects/lukaz-present/plugins/*.lisp")))
+(let ((plugins (directory "plugins/*.lisp")))
 	(dolist (p plugins)
 	  (load p)))
 
 (defun main ()
   (setf *plugins* nil)
-  (let* ((input (read-markdown-stdin))
+  (parse-command-line-arguments)
+  (let* ((input (read-input))
 		 (config (first input))
 		 (markdown (second input)))
 	;; markdown and always on plugins
@@ -380,11 +454,19 @@
 	(plugin-sort-into-pages)
 	(plugin-slideselect)
 	;; custom plugin selection
-	(eval (read-from-string (format nil "(progn ~A)" config)))
+	(eval (read-from-string (format nil "(progn (in-package :prezento-cl)~A)" config)))
 	;; generate html and output
 	;; (format t "MAIN ~A~%"         (map 'list #'plugin-priority (sort (copy-list *plugins*) #'> :key #'plugin-priority)))
 	;; (format t "MAIN ~A~%"         (map 'list #'plugin-priority *plugins*))
 	(setf *plugins* (sort *plugins* #'> :key #'plugin-priority))
+	(cond ((equal "-" *output-file*)
+		   (format t "~A" (generate-html)))
+		  (*output-file*
+		   (with-open-file (stream *output-file*)
+			 (format stream "~A" (generate-html))))
+		  (t
+		   (format t "~A" (generate-html)))
+		  )
 	(format t "~A" (generate-html))
 	))
 

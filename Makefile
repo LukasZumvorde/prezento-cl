@@ -1,9 +1,12 @@
 build:
-	sbcl --load main.lisp --eval "(sb-ext:save-lisp-and-die \"lukaz-present\" :toplevel #'lukaz-present:main :executable t :compression 9)"
+	sbcl --load main.lisp --eval "(sb-ext:save-lisp-and-die \"prezento-cl\" :toplevel #'prezento-cl:main :executable t :compression 9)"
 
 install:
-	install lukaz-present "${DESTDIR}"
+	mkdir -p "${DESTDIR}"
+	install prezento-cl "${DESTDIR}/"
+	mkdir -p "${DESTDIR}/plugins"
+	install plugins/* "${DESTDIR}/plugins"
 
 uninstall:
-	rm "${DESTDIR}"/lukaz-present
+	rm "${DESTDIR}/"prezento-cl
 
